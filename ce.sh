@@ -1,10 +1,13 @@
-#!/usr/bin/env sh -e
+#!/usr/bin/env sh
 #
 # Cleaned up by Hackerb9 (2017) & ConzZah (2026) to be more robust and require less typing.
+#
+# LAST MODIFICATION: ConzZah // 2/27/26 6:47 PM
 #
 # Convert from Firefox's cookies.sqlite format to Netscape cookies,
 # which can then be used by wget and curl. (Why don't wget and curl
 # just use libsqlite if it's installed?)
+#
 # USAGE:
 #
 # $ ce.sh > /tmp/cookies.txt
@@ -25,17 +28,22 @@
 # HISTORY: I believe this is circa 2010 from:
 # http://slacy.com/blog/2010/02/using-cookies-sqlite-in-wget-or-curl/
 # However, that site is down now.
+#
+# shellcheck disable=SC2012
+
+set -e
 
 ! command -v sqlite3 >/dev/null && printf "\n--> SQLITE3 IS NOT INSTALLED..\n\n" && exit 1
 
 cleanup() {
-rm -f $TMPFILE
+rm -f "$TMPFILE"
 exit 0
 }
 trap cleanup EXIT INT QUIT TERM
 
 
 if [ "$#" -ge 1 ]; then
+! [ -f "$1" ] && { echo "Error. File $SQLFILE does not exist."; exit 1 ;}
 SQLFILE="$1"
 else
 if tty -s; then
@@ -45,14 +53,14 @@ SQLFILE="-" # Will use 'cat' below to read stdin
 fi
 fi
 
-if [ "$SQLFILE" != "-" -a ! -r "$SQLFILE" ]; then
+if [ "$SQLFILE" != "-" ] && [ ! -r "$SQLFILE" ]; then
 echo "Error. File $SQLFILE is not readable." >&2
 exit 1
 fi
 
 # We have to copy cookies.sqlite, because Furryfox has a lock on it
 TMPFILE="$(mktemp /tmp/cookies.sqlite.XXXXXXXXXX)"
-cat "$SQLFILE" >> $TMPFILE
+cat "$SQLFILE" >> "$TMPFILE"
 
 # This is the format of the sqlite database:
 # CREATE TABLE moz_cookies 
@@ -60,7 +68,7 @@ cat "$SQLFILE" >> $TMPFILE
 # expiry INTEGER, lastAccessed INTEGER, isSecure INTEGER, isHttpOnly INTEGER);
 
 echo "# Netscape HTTP Cookie File"
-sqlite3 -separator $'\t' $TMPFILE <<- EOF
+sqlite3 -separator '\t' "$TMPFILE" <<- EOF
 .mode tabs
 .header off
 select host,
